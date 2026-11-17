@@ -1485,6 +1485,8 @@ window.LURIZ_CONFIG = {
     return `${b.type}\n${where} · ${b.time}`;
   }
 
+  // Если указан адрес посредника (Cloudflare Worker), Telegram идёт через него: так обходятся блокировки сети
+  function tgBase(u) { u = (u || '').trim().replace(/\/$/, ''); if (u && !/^https?:\/\//.test(u)) u = 'https://' + u; return u || 'https://api.telegram.org'; }
   async function send(type, payload = {}) {
     const body = Object.assign({ type, salon: SET.salon, place: SET.place, placeName: placeName(), time: time() }, payload);
     body.text = messageText(body);
@@ -1496,7 +1498,7 @@ window.LURIZ_CONFIG = {
     if (tgBot && tgTo) {
       if (!navigator.onLine) throw new NetError('offline');
       try {
-        const r = await fetch(`https://api.telegram.org/bot${tgBot}/sendMessage`, { method: 'POST', body: new URLSearchParams({ chat_id: tgTo, text: body.text }) });
+        const r = await fetch(`${tgBase(SET.apiUrl)}/bot${tgBot}/sendMessage`, { method: 'POST', body: new URLSearchParams({ chat_id: tgTo, text: body.text }) });
         const j = await r.json();
         if (!j.ok) throw new NetError('tg ' + (j.description || r.status));
         return { ok: true, id: 'tg-' + j.result.message_id };
@@ -2976,7 +2978,7 @@ offer: (x) => `
           <input data-set="placeName" value="${h(SET.placeName)}" placeholder="Например, Маникюр 2">
         </label>
         <label>Адрес сервера уведомлений (пусто — демо-режим)
-          <input data-set="apiUrl" value="${h(SET.apiUrl)}" placeholder="https://luriz-notify.example.workers.dev" inputmode="url">
+          <input data-set="apiUrl" value="${h(SET.apiUrl)}" placeholder="Адрес посредника Telegram, например https://luriz-tg.имя.workers.dev" inputmode="url">
         </label>
         <label>Ключ планшета
           <input data-set="key" value="${h(SET.key)}" placeholder="Секретный ключ из настроек сервера">
@@ -3182,7 +3184,7 @@ function zoomFrom(el) {
       if (!tok) { st.textContent = 'Сначала вставьте токен бота.'; return; }
       st.textContent = 'Ищу…';
       try {
-        const j = await (await fetch(`https://api.telegram.org/bot${tok}/getUpdates`)).json();
+        const j = await (await fetch(`${tgBase($modal.querySelector('[data-set="apiUrl"]').value)}/bot${tok}/getUpdates`)).json();
         const u = (j.result || []).reverse().find((x) => x.message || x.my_chat_member || x.channel_post);
         const chat = u && (u.message || u.my_chat_member || u.channel_post).chat;
         if (!chat) { st.textContent = 'Чат не найден. Напишите боту /start с телефона администратора и нажмите ещё раз.'; return; }
@@ -3196,7 +3198,7 @@ function zoomFrom(el) {
       const tok = (fld === 'tgFbChat' && $modal.querySelector('[data-set="tgFbToken"]').value.trim()) || $modal.querySelector('[data-set="tgToken"]').value.trim(), chat = $modal.querySelector(`[data-set="${fld}"]`).value.trim();
       if (!tok || !chat) { st.textContent = 'Нужны токен и ID чата.'; return; }
       try {
-        const j = await (await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method: 'POST', body: new URLSearchParams({ chat_id: chat, text: fld === 'tgFbChat' ? '✅ Планшет LURIZ подключён. Сюда будут приходить анонимные отзывы гостей.' : '✅ Планшет LURIZ подключён. Сюда будут приходить вызовы администратора.' }) })).json();
+        const j = await (await fetch(`${tgBase($modal.querySelector('[data-set="apiUrl"]').value)}/bot${tok}/sendMessage`, { method: 'POST', body: new URLSearchParams({ chat_id: chat, text: fld === 'tgFbChat' ? '✅ Планшет LURIZ подключён. Сюда будут приходить анонимные отзывы гостей.' : '✅ Планшет LURIZ подключён. Сюда будут приходить вызовы администратора.' }) })).json();
         st.textContent = j.ok ? 'Тестовое сообщение отправлено.' : 'Telegram ответил ошибкой: ' + (j.description || '');
       } catch (e) { st.textContent = 'Не удалось связаться с Telegram (' + (e && e.message || 'нет связи') + ').'; }
     },

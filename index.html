@@ -1492,7 +1492,7 @@ window.LURIZ_CONFIG = {
     const fbMsg = type === 'feedback';
     const tgTo = fbMsg ? SET.tgFbChat : SET.tgChat;
     const tgBot = fbMsg ? (SET.tgFbToken || SET.tgToken) : SET.tgToken;
-    if (fbMsg && tgBot && !SET.tgFbChat) { await delay(400); console.info('[LURIZ] чат для отзывов не задан', body); return { ok: true, id: 'fb-off', demo: true }; }
+    if (fbMsg && tgBot && !SET.tgFbChat) { await delay(400); console.info('[LURIZ] чат для отзывов не задан', body); window.__lzDemo = true; return { ok: true, id: 'fb-off', demo: true }; }
     if (tgBot && tgTo) {
       if (!navigator.onLine) throw new NetError('offline');
       try {
@@ -1505,6 +1505,7 @@ window.LURIZ_CONFIG = {
     if (demo()) {
       await delay(600);
       console.info('[LURIZ demo] уведомление', body);
+      window.__lzDemo = true;
       return { ok: true, id: 'demo-' + Date.now(), demo: true };
     }
     if (!navigator.onLine) throw new NetError('offline');
@@ -3069,7 +3070,10 @@ function zoomFrom(el) {
     if (left > 0) statusTimer = setTimeout(renderStatus, left + 50);
   }
 
-  function result(title, text) { openModal('result', { title, text }); }
+  function result(title, text) {
+    if (window.__lzDemo) { window.__lzDemo = false; title = 'Telegram <span class="accent">не настроен</span>'; text = 'Сообщение никуда не ушло: на этом планшете не введены токен бота и ID чата. Попросите администратора: зажать логотип LURIZ на 2 секунды → PIN → вписать токен и ID чата → «Тест».'; }
+    openModal('result', { title, text });
+  }
   function fail() { openModal('result', { title: 'Не получилось отправить', text: NET_FAIL, error: true }); }
 
   // ---------- Заставка ----------

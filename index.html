@@ -1496,7 +1496,7 @@ window.LURIZ_CONFIG = {
     if (tgBot && tgTo) {
       if (!navigator.onLine) throw new NetError('offline');
       try {
-        const r = await fetch(`https://api.telegram.org/bot${tgBot}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: tgTo, text: body.text }) });
+        const r = await fetch(`https://api.telegram.org/bot${tgBot}/sendMessage`, { method: 'POST', body: new URLSearchParams({ chat_id: tgTo, text: body.text }) });
         const j = await r.json();
         if (!j.ok) throw new NetError('tg ' + (j.description || r.status));
         return { ok: true, id: 'tg-' + j.result.message_id };
@@ -3188,7 +3188,7 @@ function zoomFrom(el) {
         if (!chat) { st.textContent = 'Чат не найден. Напишите боту /start с телефона администратора и нажмите ещё раз.'; return; }
         $modal.querySelector(`[data-set="${fld}"]`).value = chat.id;
         st.textContent = `Найден чат: ${chat.title || [chat.first_name, chat.last_name].filter(Boolean).join(' ') || chat.id}. Нажмите «Сохранить».`;
-      } catch { st.textContent = 'Не удалось связаться с Telegram. Проверьте интернет и токен.'; }
+      } catch (e) { st.textContent = 'Не удалось связаться с Telegram (' + (e && e.message || 'нет связи') + '). Если токен верный — сеть планшета не пускает к Telegram.'; }
     },
     tgTest: async (d) => {
       const fld = (d && d.field) || 'tgChat';
@@ -3196,9 +3196,9 @@ function zoomFrom(el) {
       const tok = (fld === 'tgFbChat' && $modal.querySelector('[data-set="tgFbToken"]').value.trim()) || $modal.querySelector('[data-set="tgToken"]').value.trim(), chat = $modal.querySelector(`[data-set="${fld}"]`).value.trim();
       if (!tok || !chat) { st.textContent = 'Нужны токен и ID чата.'; return; }
       try {
-        const j = await (await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chat, text: fld === 'tgFbChat' ? '✅ Планшет LURIZ подключён. Сюда будут приходить анонимные отзывы гостей.' : '✅ Планшет LURIZ подключён. Сюда будут приходить вызовы администратора.' }) })).json();
+        const j = await (await fetch(`https://api.telegram.org/bot${tok}/sendMessage`, { method: 'POST', body: new URLSearchParams({ chat_id: chat, text: fld === 'tgFbChat' ? '✅ Планшет LURIZ подключён. Сюда будут приходить анонимные отзывы гостей.' : '✅ Планшет LURIZ подключён. Сюда будут приходить вызовы администратора.' }) })).json();
         st.textContent = j.ok ? 'Тестовое сообщение отправлено.' : 'Telegram ответил ошибкой: ' + (j.description || '');
-      } catch { st.textContent = 'Не удалось связаться с Telegram.'; }
+      } catch (e) { st.textContent = 'Не удалось связаться с Telegram (' + (e && e.message || 'нет связи') + ').'; }
     },
     call: () => { if (Date.now() >= callUntil) { openModal('callConfirm'); setTimeout(() => { const i = $modal.querySelector('#callName'); if (i) i.focus(); }, 60); } },
     fbRate: (d) => { S.fb.rating = S.fb.rating === +d.n ? 0 : +d.n; rerender(); },
